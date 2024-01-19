@@ -1,3 +1,5 @@
+```C#
+using System;
 using System.IO;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
@@ -14,46 +16,38 @@ class Program
     {
         using (var fs = new FileStream(xlsxFilePath, FileMode.Open, FileAccess.Read))
         {
-            var workbook = new XSSFWorkbook(fs);
-            var newWorkbook = new HSSFWorkbook();
+            var workbookXlsx = new XSSFWorkbook(fs);
+            var workbookXls = new HSSFWorkbook();
 
-            for (int i = 0; i < workbook.NumberOfSheets; i++)
+            // Đối tượng ICellStyle để sao chép style
+            ICellStyle newCellStyle;
+
+            for (int i = 0; i < workbookXlsx.NumberOfSheets; i++)
             {
-                var sheet = newWorkbook.CreateSheet(workbook.GetSheetName(i));
-                var oldSheet = (XSSFSheet)workbook.GetSheetAt(i);
+                var sheetXlsx = (XSSFSheet)workbookXlsx.GetSheetAt(i);
+                var sheetXls = (HSSFSheet)workbookXls.CreateSheet(sheetXlsx.SheetName);
 
-                for (int j = 0; j <= oldSheet.LastRowNum; j++)
+                for (int rowIndex = 0; rowIndex <= sheetXlsx.LastRowNum; rowIndex++)
                 {
-                    var oldRow = (XSSFRow)oldSheet.GetRow(j);
-                    var newRow = (HSSFRow)sheet.CreateRow(j);
+                    var rowXlsx = (XSSFRow)sheetXlsx.GetRow(rowIndex);
+                    var rowXls = (HSSFRow)sheetXls.CreateRow(rowIndex);
 
-                    if (oldRow != null)
+                    if (rowXlsx != null)
                     {
-                        for (int k = 0; k < oldRow.LastCellNum; k++)
+                        for (int cellIndex = 0; cellIndex <= rowXlsx.LastCellNum; cellIndex++)
                         {
-                            var oldCell = (XSSFCell)oldRow.GetCell(k);
-                            var newCell = (HSSFCell)newRow.CreateCell(k);
+                            var cellXlsx = (XSSFCell)rowXlsx.GetCell(cellIndex);
+                            var cellXls = (HSSFCell)rowXls.CreateCell(cellIndex);
 
-                            if (oldCell != null)
+                            if (cellXlsx != null)
                             {
-                                switch (oldCell.CellType)
-                                {
-                                    case CellType.Boolean:
-                                        newCell.SetCellValue(oldCell.BooleanCellValue);
-                                        break;
-                                    case CellType.Numeric:
-                                        newCell.SetCellValue(oldCell.NumericCellValue);
-                                        break;
-                                    case CellType.String:
-                                        newCell.SetCellValue(oldCell.StringCellValue);
-                                        break;
-                                    case CellType.Formula:
-                                        newCell.SetCellFormula(oldCell.CellFormula);
-                                        break;
-                                    default:
-                                        // Xử lý các kiểu dữ liệu khác nếu cần
-                                        break;
-                                }
+                                // Sao chép style từ cellXlsx sang cellXls
+                                newCellStyle = workbookXls.CreateCellStyle();
+                                CopyCellStyle(cellXlsx.CellStyle, newCellStyle);
+                                cellXls.CellStyle = newCellStyle;
+
+                                // Sao chép giá trị từ cellXlsx sang cellXls
+                                CopyCellValue(cellXlsx, cellXls);
                             }
                         }
                     }
@@ -62,10 +56,55 @@ class Program
 
             using (var fileStream = new FileStream(xlsFilePath, FileMode.Create))
             {
-                newWorkbook.Write(fileStream);
+                workbookXls.Write(fileStream);
             }
-        }
 
-        Console.WriteLine("Chuyển đổi thành công từ .xlsx sang .xls");
+            Console.WriteLine("Chuyển đổi và sao chép style thành công từ .xlsx sang .xls");
+        }
+    }
+
+    // Hàm sao chép style từ oldStyle sang newStyle
+    static void CopyCellStyle(ICellStyle oldStyle, ICellStyle newStyle)
+    {
+        newStyle.Alignment = oldStyle.Alignment;
+        newStyle.BorderBottom = oldStyle.BorderBottom;
+        newStyle.BorderLeft = oldStyle.BorderLeft;
+        newStyle.BorderRight = oldStyle.BorderRight;
+        newStyle.BorderTop = oldStyle.BorderTop;
+        newStyle.BottomBorderColor = oldStyle.BottomBorderColor;
+        newStyle.DataFormat = oldStyle.DataFormat;
+        newStyle.FillForegroundColor = oldStyle.FillForegroundColor;
+        newStyle.FillPattern = oldStyle.FillPattern;
+        newStyle.Indention = oldStyle.Indention;
+        newStyle.LeftBorderColor = oldStyle.LeftBorderColor;
+        newStyle.RightBorderColor = oldStyle.RightBorderColor;
+        newStyle.Rotation = oldStyle.Rotation;
+        newStyle.TopBorderColor = oldStyle.TopBorderColor;
+        newStyle.VerticalAlignment = oldStyle.VerticalAlignment;
+        newStyle.WrapText = oldStyle.WrapText;
+    }
+
+    // Hàm sao chép giá trị từ cellFrom sang cellTo
+    static void CopyCellValue(XSSFCell cellFrom, HSSFCell cellTo)
+    {
+        switch (cellFrom.CellType)
+        {
+            case CellType.Boolean:
+                cellTo.SetCellValue(cellFrom.BooleanCellValue);
+                break;
+            case CellType.Numeric:
+                cellTo.SetCellValue(cellFrom.NumericCellValue);
+                break;
+            case CellType.String:
+                cellTo.SetCellValue(cellFrom.StringCellValue);
+                break;
+            case CellType.Formula:
+                cellTo.CellFormula = cellFrom.CellFormula;
+                break;
+            default:
+                // Xử lý các kiểu dữ liệu khác nếu cần
+                break;
+        }
     }
 }
+```
